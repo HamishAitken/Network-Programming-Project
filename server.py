@@ -2,7 +2,7 @@ import socket
 
 #for selftesting host = 'localhost'
 #for the project subsmission hots = "fc00:b33f::17"
-host = "fc00:b33f::17"
+host = "fc00:1337::17"
 port = 6667
 
 #To store the clients that connect to the server
