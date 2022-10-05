@@ -5,7 +5,7 @@ import socket
 
 HOST = "fc00:1337::17" #IP for the virtual machine
 PORT = 6667 #the port used
-BOTNICK = "SuperBot"
+
 
 #Using AF_INET6 because the host is a string representing a hostname for IPV6
 #We use SOCK_STREAM because is a TCP protocol, and not a UDP
@@ -16,9 +16,9 @@ with socket.socket(socket.AF_INET6, socket.SOCK_STREAM) as s:
     s.connect((HOST,PORT))
 
     #Identifying myself!
-    ircsock.send("Hello! I'm "+ BOTNICK +"\n")
+    s.send(b"Hello! I'm SUPER BOT\n")
     #The b it's something about decoding or bytes
-    s.sendall(b"TRYING THE CLIENT") #Sending data to the socket
+    s.sendall(b"TRYING THE CLIENT\n") #Sending data to the socket
     data = s.recv(1024)
 
 print(f"Received {data!r}")
