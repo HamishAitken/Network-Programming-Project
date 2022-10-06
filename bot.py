@@ -2,10 +2,12 @@
 
 import socket
 
-#def ping(): # respond to server Pings.  
-#    ircSocket.send(bytes("PONG :pingisn", "UTF-8"))
+
 
 ircSocket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM) 
+
+def ping(): # respond to server Pings.  
+    ircSocket.send("PONG :pingis\n")
 
 HOST = "fc00:1337::17" #IP for the virtual machine
 PORT = 6667 #the port used
@@ -25,11 +27,11 @@ active = True
 while active:
     data = ircSocket.recv(1024)
 
-    if text.find('PING') != -1:
-	    irc.send(bytes("PONG  "+ text.split() [1] +"\r\n"))
+    if ircmsg.find ("PING :") != -1:
+        ping()
 
   
 
 
 
-print(f"Received {data!r}")
+#print(f"Received {data!r}")
