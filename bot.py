@@ -30,7 +30,7 @@ while active:
 
     data = data.strip("\n\r")
 
-    if data.find ("PING :") != -1:
+    if data.find (bytes("PING :", "UTF-8")) != -1:
         ping()
 
   
