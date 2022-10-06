@@ -28,7 +28,7 @@ while active:
 
     data = ircSocket.recv(2048)
 
-    data = data.strip("\n\r")
+    data = data.strip (bytes("\n\r", "UTF-8"))
 
     if data.find (bytes("PING :", "UTF-8")) != -1:
         ping()
