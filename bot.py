@@ -25,9 +25,12 @@ ircSocket.send(bytes("JOIN "+ channel +"\n", "UTF-8"))
 
 active = True
 while active:
-    data = ircSocket.recv(1024)
 
-    if ircmsg.find ("PING :") != -1:
+    data = ircSocket.recv(2048)
+
+    data = data.strip("\n\r")
+
+    if data.find ("PING :") != -1:
         ping()
 
   
