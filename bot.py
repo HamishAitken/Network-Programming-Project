@@ -2,27 +2,31 @@
 
 import socket
 
-s = socket.socket(socket.AF_INET6, socket.SOCK_STREAM) 
+def ping(): # respond to server Pings.  
+    ircSocket.send(bytes("PONG :pingisn", "UTF-8"))
+
+ircSocket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM) 
 
 HOST = "fc00:1337::17" #IP for the virtual machine
 PORT = 6667 #the port used
 
 botnick = "bot"
+channel = "#test"
 
 
-
-#Using AF_INET6 because the host is a string representing a hostname for IPV6
-#We use SOCK_STREAM because is a TCP protocol, and not a UDP
-socket.socket(socket.AF_INET6, socket.SOCK_STREAM) 
+ 
     
-s.connect((HOST,PORT))
+ircSocket.connect((HOST,PORT))
+ircSocket.send(bytes("USER "+ botnick + "\n", "UTF-8")) #Wset all the fields to the bot nickname
+ircSocket.send(bytes("NICK "+ botnick +"\n", "UTF-8")) # assign the nick to the bot
+ircSocket.send(bytes("JOIN "+ channel +"\n"))
 
-s.send(bytes("USER "+ botnick +" "+ botnick +" "+ botnick + " " + botnick + "n", "UTF-8")) #Wset all the fields to the bot nickname
-s.send(bytes("NICK "+ botnick +"n", "UTF-8")) # assign the nick to the bot
+active = True
+while active:
+    ping()
 
-def ping(): # respond to server Pings.  
-    s.send(bytes("PONG :pingisn", "UTF-8"))
   
-data = s.recv(1024)
+
+data = ircSocket.recv(1024)
 
 print(f"Received {data!r}")
