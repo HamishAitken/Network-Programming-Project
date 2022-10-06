@@ -24,12 +24,12 @@ ircSocket.send(bytes("JOIN "+ channel +"\n", "UTF-8"))
 active = True
 while active:
     data = ircSocket.recv(1024)
-    
+
     if text.find('PING') != -1:
-		irc.send(tbytes('PONG ' + text.split() [1] + '\r\n'))
+	    irc.send(bytes("PONG  "+ text.split() [1] +"\r\n"))
 
   
 
-data = ircSocket.recv(1024)
+
 
 print(f"Received {data!r}")
