@@ -36,7 +36,7 @@ class Client:
 
 # for selftesting host = "::1"
 # for the project subsmission hots = "fc00:1337::17"
-host = "::1"
+host = "fc00:1337::17"
 port = 6667
 # stores the clients that connect to the server
 clients = []
