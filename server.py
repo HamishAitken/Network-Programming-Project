@@ -36,7 +36,7 @@ class Client:
 
 # for selftesting host = "::1"
 # for the project subsmission hots = "fc00:1337::17"
-host = "fc00:1337::17"
+host = "::1"
 port = 6667
 # stores the clients that connect to the server
 clients = []
@@ -59,12 +59,19 @@ def welcomeMessage(client):
     welcomeMsg = "Welcome to the Internet Relay Network {}!{}@{}".format(client.getNickname(), client.getUsername(), client.getHost()[0])
     msg2 = "Your host is {}, running version {}".format(serverName, serverVersion)
     msg3 = "This server was created {}".format(serverDate)
-    msg4 = "{} {} o o ".format(serverName, serverVersion)
+    msg4 = "{} {} r r".format(serverName, serverVersion)
 
     sendMsg(client, welcomeMsg)
     sendMsg(client, msg2)
     sendMsg(client, msg3)
     sendMsg(client, msg4)
+
+def findClient(conn):
+    for i in clients:
+        if conn == clients[i].getConnection():
+            return clients[i]
+    print("Error, client not found")
+    return 0
 
 
 
@@ -75,7 +82,7 @@ connection, clientAddress = s.accept()
 
 while True:
     try:
-        print(f"received connection from {clientAddress}")
+        # print(f"received connection from {clientAddress}")
         while True:
 
             # Create a new client instance and add it to the list
@@ -105,7 +112,7 @@ while True:
                         # used for testing
                         # print(nickString[0].decode("utf-8"))
 
-                    if b"USER" in i:
+                    elif b"USER" in i:
 
                         # The byte string is received with other parameters attached to it
                         # this splits the byte string to get the nickname
@@ -120,14 +127,31 @@ while True:
                         welcomeMessage(newClient)
                         clients.append(newClient)
 
+                    elif b"PING" in i:
+                        pongMsg = ":{} PONG {}".format(serverName, serverName)
+                        sendMsg(newClient, pongMsg)
+
+                    elif b"QUIT" in i:
+                        client = findClient(connection)
+                        quitMsg = " User {} has left IRC".format(client.getNickname())
+                        print(quitMsg)
+
+                    # else:
+                    #     unknownMsg = ":{} 421 {} {}:Unknown command".format(serverName, newClient.getUsername(), data)
+                    #     sendMsg(newClient, unknownMsg)
+
             else:
-                print("No data from: ", clientAddress)
-                break
+                pingMsg = "PING {}".format(newClient.getNickname())
+                sendMsg(newClient, pingMsg)
+                # print("No data from: ", clientAddress)
+                # break
             
     except socket.error as e:
-        print(e)
+        if "10054" in e:
+            break
 
     finally:
         print("Closing server")
         connection.close()
         break
+
