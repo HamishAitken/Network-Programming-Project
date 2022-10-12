@@ -8,7 +8,8 @@ import datetime
 class Server:
 
     # Server info
-    # stores the clients that connect to the server
+    # stores the channels and clients that connect to the server
+    channels = []
     clients = []
     serverName = "server"
     serverVersion = "server-05.10.22"
@@ -33,80 +34,101 @@ class Server:
     def receiveMsg(self, client, msg):
         if not msg:
             return
-        print("[{}:{}] -> ".format(client.getHost()[0], client.getHost()[1]) + msg.decode())
+        print("[{}:{}] -> ".format(client.getHost()[0], client.getHost()[1]) + msg)
 
     def processMsg(self, currentClient):
         while True:
-            try:
-                # print(f"received connection from {clientAddress}")
-                while True:
+            data = currentClient.getConnection().recv(1024)
+            data = data.decode('utf-8')
+            if data:
+                # when testing data is received as in byte form and we need to decode it using .decode()
+                # b'NICK Else\r\nUSER Elsed 0 * :realname\r\n'
+                messages = data.split("\r\n")
+                
+                if len(messages) > 1:
+                    self.receiveMsg(currentClient, messages[0])
+                    self.receiveMsg(currentClient, messages[1])
+                else:
+                    self.receiveMsg(data)
 
-                    data = currentClient.getConnection().recv(1024)
-                    if data:
-                        # when testing data is received as in byte form and we need to decode it using .decode()
-                        # b'NICK Else\r\nUSER Elsed 0 * :realname\r\n'
-                        messages = data.split(b"\r\n")
-                        
-                        if len(messages) > 1:
-                            self.receiveMsg(currentClient, messages[0])
-                            self.receiveMsg(currentClient, messages[1])
+                for i in messages:
+                    if "NICK" in i:
+
+                        nickMessage = messages[0].split()
+                        nickString = nickMessage[1]
+                        # changes the nickname byte object into a string
+                        # setting its nickname into the new client object
+                        currentClient.setNickname(nickString)
+
+                        # used for testing
+                        # print(nickString[0].decode("utf-8"))
+
+                    elif "USER" in i:
+
+                        # The byte string is received with other parameters attached to it
+                        # this splits the byte string to get the nickname
+                        userMessage = messages[1].split()
+                        userString = userMessage[1]
+                        # changes the nickname byte object into a string
+                        # setting its nickname into the new client object
+                        currentClient.setUsername(userString)
+                        # used for testing
+                        # print(userString.decode("utf-8"))
+
+                        self.welcomeMessage(currentClient)
+                        self.clients.append(currentClient)
+
+                    elif "JOIN" in i:
+                        channelMsg = i.split()
+                        channelString = channelMsg[1]
+
+                        validateChannel = self.getChannel(channelString)
+                        if validateChannel is None:
+                            newChannel = Channel(channelString)
+                            newChannel.addMember(currentClient)
+                            self.channels.append(newChannel)
+                            self.joinMsg(currentClient, newChannel)
                         else:
-                            self.receiveMsg(data)
+                            validateChannel.addMember(currentClient)
+                            self.joinMsg(currentClient, validateChannel)
+                            
+                    elif "MODE" in i:
+                        channelMsg = i.split()
+                        channelString = channelMsg[1]
+                        chan = self.getChannel(channelString)
+                        modeMsg = f":{self.serverName}" + f" 324 {currentClient.getUsername()} {chan.getName()} :No topic is set\r\n"
+                        self.sendMsg(currentClient, modeMsg)
 
-                        for i in messages:
-                            if b"NICK" in i:
+                    elif "WHO" in i:
+                        channelMsg = i.split()
+                        channelString = channelMsg[1]
+                        chan = self.getChannel(channelString)
+                        whoMsg = f":{self.serverName}" + f" 352 {chan.getName()} {currentClient.getUsername()}  {currentClient.getHost()[0]} {self.serverName} {currentClient.getNickname()} H :0 realname\r\n"
+                        self.sendMsg(currentClient, whoMsg)
 
-                                nickMessage = messages[0].split()
-                                nickString = nickMessage[1]
-                                # changes the nickname byte object into a string
-                                # setting its nickname into the new client object
-                                currentClient.setNickname(nickString.decode("utf-8"))
+                        whoList = chan.getMemberList()
+                        whoListMsg = f":{self.serverName}" + f" 315 {whoList} {chan.getName()} :End of WHO list\r\n"
+                        self.sendMsg(currentClient, whoListMsg)
 
-                                # used for testing
-                                # print(nickString[0].decode("utf-8"))
+                    elif "PING " in i:
+                        pongMsg = ":{} PONG {}".format(self.serverName, self.serverName)
+                        self.sendMsg(currentClient, pongMsg)
 
-                            elif b"USER" in i:
+                    elif "QUIT " in i:
+                        client = self.findClient(currentClient.getConnection())
+                        quitMsg = "User {} has left IRC".format(client.getNickname())
+                        print(quitMsg)
 
-                                # The byte string is received with other parameters attached to it
-                                # this splits the byte string to get the nickname
-                                userMessage = messages[1].split()
-                                userString = userMessage[1]
-                                # changes the nickname byte object into a string
-                                # setting its nickname into the new client object
-                                currentClient.setUsername(userString.decode("utf-8"))
-                                # used for testing
-                                # print(userString.decode("utf-8"))
+                    elif len(i) > 0:
+                        unknownMsg = ":{} 421 {} {}:Unknown command".format(self.serverName, currentClient.getUsername(), data)
+                        self.sendMsg(currentClient, unknownMsg)
 
-                                self.welcomeMessage(currentClient)
-                                self.clients.append(currentClient)
-
-                            elif b"PING" in i:
-                                pongMsg = ":{} PONG {}".format(self.serverName, self.serverName)
-                                self.sendMsg(currentClient, pongMsg)
-
-                            elif b"QUIT" in i:
-                                client = self.findClient(currentClient.getConnection())
-                                quitMsg = " User {} has left IRC".format(client.getNickname())
-                                print(quitMsg)
-
-                            # else:
-                            #     unknownMsg = ":{} 421 {} {}:Unknown command".format(serverName, currentClient.getUsername(), data)
-                            #     sendMsg(currentClient, unknownMsg)
-
-                    else:
-                        pingMsg = "PING {}".format(currentClient.getNickname())
-                        self.sendMsg(currentClient, pingMsg)
-                        # print("No data from: ", clientAddress)
-                        # break
+            else:
+                pingMsg = "PING {}".format(currentClient.getNickname())
+                self.sendMsg(currentClient, pingMsg)
+                # print("No data from: ", clientAddress)
+                # break
                     
-            except socket.error as e:
-                if "10054" in e:
-                    break
-
-            finally:
-                print("Closing server")
-                currentClient.getConnection().close()
-                break
 
     def sendMsg(self, client, msg):
         client.getConnection().send((msg + '\n').encode("utf-8"))
@@ -123,13 +145,55 @@ class Server:
         self.sendMsg(client, msg3)
         self.sendMsg(client, msg4)
 
+    def joinMsg(self, client, chan):
+        msg = ":{}!{}@{}".format(client.getNickname(), client.getUsername(), client.getHost()[0]) + " JOIN " + chan.getName() + "\r\n"
+        rpl331 = f":{self.serverName}" + f" 331 {client.getUsername()} {chan.getName()} :No topic is set\r\n"
+        rpl353 = f":{self.serverName}" + f" 353 {client.getUsername()} = {chan.getName()} :{client.getUsername()}\r\n"
+        listOFMembers = ""
+        
+        listOFMembers = chan.getMemberList()
+        rpl366 = f":{self.serverName}" + f" 366 {listOFMembers} {chan.getName()} :End of NAMES list\r\n"
+
+        self.sendMsg(client, msg)
+        self.sendMsg(client, rpl331)
+        self.sendMsg(client, rpl353)
+        self.sendMsg(client, rpl366)
+
     def findClient(self, conn):
-        for i in self.clients:
+        for i in range(len(self.clients)):
             if conn == self.clients[i].getConnection():
                 return self.clients[i]
         print("Error, client not found")
         return 0
+    
+    def getChannel(self, name):
+        for i in range(len(self.channels)):
+            if name == self.channels[i].getName():
+                return self.channels[i]
+        return None
 
+
+# Channel
+# Datastructure to hold channel information
+class Channel:
+    members = []
+    def __init__(self, name):
+        self.name = name
+    
+    def addMember(self, client):
+        self.members.append(client)
+
+    def getName(self):
+        return self.name
+
+    def getMembers(self):
+        return self.members
+
+    def getMemberList(self):
+        memberList = ""
+        for i in range(len(self.members)):
+            memberList = memberList + " " + self.members[i].getUsername()
+        return memberList
 
 # Client 
 # Datastructure to hold the clients that connect to the server
@@ -158,8 +222,9 @@ class Client:
     def getHost(self):
         return self.address
 
+
 def main():
-    s = Server("fc00:1337::17", 6667)
+    s = Server("::1", 6667)
     s.openConnection()
 
 main()
