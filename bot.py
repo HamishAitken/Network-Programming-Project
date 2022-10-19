@@ -27,19 +27,20 @@ ircSocket.send(bytes("USER "+ botnick +" "+ botnick +" "+ botnick +" "+ botnick 
 ircSocket.send(bytes("NICK "+ botnick +"\r\n", "UTF-8"))
 
 #joins a channel and gets information on its users 
-Channel.joinChannel(channel)
-namesArray = Channel.getChannelUsers(channel)
+newChannel = Channel(channel)
+#newChannel.joinChannel(channel)
+namesArray = newChannel.getChannelUsers(channel)
 
 
 class Channel:
 
     #joinChannel function to take a channel name and join a channel on the IRC server
-    def joinChannel(channel):
-        ircSocket.send(bytes("JOIN "+ channel +"\r\n", "UTF-8"))
+    def __init__(self, channel):
+        self.ircSocket.send(bytes("JOIN "+ channel +"\r\n", "UTF-8"))
 
-    def getChannelUsers(channel):
-        ircSocket.send(bytes("WHO "+ channel +"\r\n", "UTF-8"))
-        data = ircSocket.recv(2048)
+    def getChannelUsers(self, channel):
+        self.ircSocket.send(bytes("WHO "+ channel +"\r\n", "UTF-8"))
+        data = self.ircSocket.recv(2048)
         data = data.decode('UTF-8')
 
         userInfo = data.split("\r\n")
