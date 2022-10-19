@@ -26,10 +26,7 @@ ircSocket.connect((HOST,PORT))
 ircSocket.send(bytes("USER "+ botnick +" "+ botnick +" "+ botnick +" "+ botnick + "\r\n", "UTF-8")) 
 ircSocket.send(bytes("NICK "+ botnick +"\r\n", "UTF-8"))
 
-#joins a channel and gets information on its users 
-newChannel = Channel(channel)
-#newChannel.joinChannel(channel)
-namesArray = newChannel.getChannelUsers(channel)
+
 
 
 class Channel:
@@ -57,7 +54,10 @@ class Channel:
         return userNamesArray
     
 
-
+#joins a channel and gets information on its users 
+newChannel = Channel(channel)
+#newChannel.joinChannel(channel)
+namesArray = newChannel.getChannelUsers(channel)
             
 
 
