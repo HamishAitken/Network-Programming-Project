@@ -33,23 +33,25 @@ class Channel:
 
     #joinChannel function to take a channel name and join a channel on the IRC server
     def __init__(self, channel):
-        self.ircSocket.send(bytes("JOIN "+ channel +"\r\n", "UTF-8"))
+        ircSocket.send(bytes("JOIN "+ channel +"\r\n", "UTF-8"))
 
     def getChannelUsers(self, channel):
-        self.ircSocket.send(bytes("WHO "+ channel +"\r\n", "UTF-8"))
-        data = self.ircSocket.recv(2048)
+        ircSocket.send(bytes("WHO "+ channel +"\r\n", "UTF-8"))
+        data = ircSocket.recv(2048)
         data = data.decode('UTF-8')
 
         userInfo = data.split("\r\n")
 
-        userNamesArray[len(userInfo-1)] 
-        i = 0
+        #userNamesArray[len(userInfo-1)] 
+        #i = 0
 
-        while userInfo.find(bytes(":End of WHO list", "UTF-8")) != -1:
-
-            userNamesArray[i] = userInfo[4]
+        for i in userInfo: 
+            if not ":End of WHO list" in i:
+                userInfoSplit = userInfo[i].split()
+                
+                userNamesArray[i] = userInfoSplit[4]
      
-            i = i + 1
+            
         
         return userNamesArray
     
