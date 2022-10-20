@@ -19,11 +19,14 @@ class Server:
     serverDate = datetime.datetime.now()
 
     # validation info
+    # Whenever data is received in the processMsg() function,
+    # the location of a client object changes - making it hard to manipulate data within it
+    # Which is why  a whole bunch of parallel arrays have been made to make handle incorrect data that needs to be changed 
     channelPrefix = ['&', '#', '+', '!']
-    retrying = False
     retryClientList = []
     retryList = []
-    retryPreviousUser = []
+    previousNickList = []
+    skippedCommandBuffer = []
 
     def __init__(self, host, port):
         # for selftesting pass into host = "::1"
@@ -70,47 +73,51 @@ class Server:
                     self.receiveMsg(currentClient, i)
 
                     receivedCommand = i.split()
-                    command = receivedCommand[0]
-                    target = receivedCommand[1]
+                    if len(receivedCommand) >= 2:
+                        command = receivedCommand[0]
+                        target = receivedCommand[1]
+                    else:
+                        command = ''
+                        target = ''
 
                     if command == "NICK":
 
-
-                        if currentClient.getRegisterStatus == False & len(target) > 9:
-                            rpl432 = f":{target} 432 :Erroneous nickname"
-                            self.sendMsg(currentClient, rpl432)
-                            
-
                         existingNickname = self.checkNickName(target)
-                        if existingNickname == True:
-                            self.retryClientList.append(currentClient)
-                            self.retryList.append(1)
-                            currentClient.setPreviousNick(target)
-                            print(currentClient.getNickRetryStatus())
-                            errNicknameInUseMsg = f":{self.serverName} 433 {target} :Nickname is already in use"
-                            self.sendMsg(currentClient, errNicknameInUseMsg)
-                        else:
-                            currentClient.setNickname(target)
 
-                            # Trying this method of registering a new user that entered an existing nickname
-                            retry = False
-                            retryIndex = 0
-                            for i in self.retryClientList:
-                                if currentClient.getConnection() == i.getConnection():
-                                    retry = True
-                                retryIndex += 1
-                            
-                            if retry == True:
-                                self.retrying = True
-                                self.retryList[retryIndex] = 1
-                                pass
-                            
-                            
-                            
-                            
+                        if currentClient.getRegisterStatus() == False:
+                            if len(target) > 9:
+                                rpl432 = f":{target} 432 :Erroneous nickname"
+                                self.sendMsg(currentClient, rpl432)
+
+                            if existingNickname == True:
+                                self.retryClientList.append(currentClient.getConnection())
+                                self.retryList.append(1)
+                                self.previousNickList.append(target)
+                                errNicknameInUseMsg = f":{self.serverName} 433 {target} :Nickname is already in use"
+                                self.sendMsg(currentClient, errNicknameInUseMsg)
+                            else:
+                                currentClient.setNickname(target)
+
+                                # Trying this method of registering a new user that entered an existing nickname
+                                retry = False
+                                retryIndex = 0
+                                for j in self.retryClientList:
+                                    if currentClient.getConnection() == j:
+                                        retry = True
+                                    else:
+                                        retryIndex += 1
+                                
+                                if retry == True:
+                                    currentClient.setNickname(target)
+                                    newUserMsg = self.skippedCommandBuffer[retryIndex]
+                                    messages.append(newUserMsg)
+                                    self.retryList[retryIndex] = 0
+                                    
+        
                     elif command == "PRIVMSG":
                         client = self.findClient(currentClient.getConnection())
 
+                        # Example private message
                         # :TheOnePieceIsReal!WhiteBeard@::1 PRIVMSG #test :test
                         fullMsg = ""
 
@@ -137,26 +144,18 @@ class Server:
 
                     elif command == "USER":
 
-                        print("USER COMMAND " + i)
-
                         retry = False
                         retryIndex = 0
-                        for i in self.retryClientList:
-                            if currentClient.getConnection() == i.getConnection():
+                        for j in self.retryClientList:
+                            if currentClient.getConnection() == j:
                                 retry = True
                             else:
                                 retryIndex += 1
 
-                        print(retry)
-                        print(retryIndex)
-                        print(self.retryClientList)
-                        print(self.retryList)
-                        print("NICK " + currentClient.getNickname())
-
                         if existingNickname == True and self.retryList[retryIndex] == 1:
-                            newUserMsg = f"USER {target} 0 * :realname"
-                            messages.append(newUserMsg)
-                            self.retryList[retryIndex] = 0
+                            # skip assigning a user for now
+                            # and save the command for later
+                            self.skippedCommandBuffer.append(i)
                             continue
 
                         if currentClient.getRegisterStatus() == True:
@@ -167,9 +166,13 @@ class Server:
                         currentClient.setUsername(target)
 
                         if retry == True:
-                            self.retryClientList.remove((currentClient))
-                            newNickMsg = f":{currentClient.getPreviousNick()}!{currentClient.getUsername()}@{currentClient.getHost()[0]} NICK {currentClient.getNickname()}"
+                            newNickMsg = f":{self.previousNickList[retryIndex]}!{currentClient.getUsername()}@{currentClient.getHost()[0]} NICK {currentClient.getNickname()}"
                             self.sendMsg(currentClient, newNickMsg)
+
+                            # Clear retry lists
+                            self.retryClientList.remove((currentClient.getConnection()))
+                            del self.retryList[retryIndex]
+                            del self.previousNickList[retryIndex]
                         
                         self.welcomeMessage(currentClient)
                         currentClient.register()
@@ -249,10 +252,7 @@ class Server:
             else:
                 self.selector.unregister(sock)
                 sock.close()
-        # if mask & selectors.EVENT_WRITE:
-        #     if data.outb:
-        #         sent = sock.send(data.outb)
-        #         data.outb = data.outb[sent:]
+
 
     def sendMsg(self, client, msg):
         client.getConnection().send((msg + '\n').encode("utf-8"))
@@ -338,8 +338,10 @@ class Channel:
     def addMember(self, client):
         self.members.append(client)
 
-    def removeMember(self, client):
-        self.members.remove(client)
+    def removeMember(self, conn):
+        for i in self.members:
+            if i.getConnection() == conn:
+                self.members.remove(i)
 
     def getName(self):
         return self.name
