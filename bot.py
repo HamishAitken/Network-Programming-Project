@@ -1,4 +1,5 @@
 import socket
+import random
 
 
 HOST = "fc00:1337::17" #IP for the server on Ubuntu virtual machine
@@ -16,7 +17,15 @@ def ping():
     ircSocket.send(bytes("PONG :bot\r\n","UTF-8"))
 
 
+def getRandomFact():
+    # use import random for this bit
+    #opens file for read and reads into the list, line by line
+        
+    myFile = open("random_facts.txt", "r")
+    randomList = myFile.readlines()
+    randomFact = random.choice(randomList)
 
+    return randomFact
 
     
 #establishes connection to the server 
@@ -113,6 +122,12 @@ while active:
             newChannel.removeUserFromChannel(channel,data)
         print(namesList) 
 
-
+    #replies to the user with a random fun fact  
+    if data.find(bytes("PRIVMSG", "UTF-8")) != -1:
+        nicknameData = data.split (":")
+        nicknameSplit = nickname[1].split ("!")
+        nickname = nicknameSplit[0]
+        randomFact = getRandomFact()
+        ircSocket.send(bytes("PRIVMSG " + nickname + " : Did you know " + randomFact + "\r\n", "UTF-8"))
         
         
