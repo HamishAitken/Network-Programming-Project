@@ -124,8 +124,9 @@ while active:
 
     #replies to the user with a random fun fact  
     if data.find(bytes("PRIVMSG", "UTF-8")) != -1:
+        data = data.decode('UTF-8')
         nicknameData = data.split (":")
-        nicknameSplit = nickname[1].split ("!")
+        nicknameSplit = nicknameData[1].split ("!")
         nickname = nicknameSplit[0]
         randomFact = getRandomFact()
         ircSocket.send(bytes("PRIVMSG " + nickname + " : Did you know " + randomFact + "\r\n", "UTF-8"))
