@@ -35,33 +35,46 @@ class Channel:
     def __init__(self, channel):
         ircSocket.send(bytes("JOIN "+ channel +"\r\n", "UTF-8"))
 
+    def getInitialChannelUsers(self, channel):
+        data = ircSocket.recv(2048)
+        data = data.decode('UTF-8')
+
+        userInfo = data.split("\r\n")
+        userInfoSplit = userInfo[8].split(" :")
+
+        userNamesList = userInfoSplit[1].split() 
+        
+        return userNamesList
+
+
+    
     def getChannelUsers(self, channel):
-        #ircSocket.send(bytes("WHO "+ channel +"\r\n", "UTF-8"))
+        ircSocket.send(bytes("WHO "+ channel +"\r\n", "UTF-8"))
         data = ircSocket.recv(2048)
         data = data.decode('UTF-8')
 
         userInfo = data.split("\r\n")
 
-        userNamesArray = [] 
+        userNamesList = [] 
         counter = 0
 
         for i in userInfo: 
             if not ":End of WHO list" in i:
                 userInfoSplit = userInfo[counter].split()
                 print(userInfoSplit)
-                userNamesArray.append(userInfoSplit[4]) 
+                userNamesList.append(userInfoSplit[4]) 
                 counter = counter + 1		
      
             
         
-        return userNamesArray
-    
+        return userNamesList
+
 
 #joins a channel and gets information on its users 
 newChannel = Channel(channel)
 #newChannel.joinChannel(channel)
-namesArray = newChannel.getChannelUsers(channel)
-print(namesArray)            
+namesList = newChannel.getInitialChannelUsers(channel)
+print(namesList)            
 
 
 
@@ -72,5 +85,6 @@ while active:
     data = ircSocket.recv(2048)
 
     if data.find(bytes("PING :", "UTF-8")) != -1:
-        ircSocket.send(bytes("WHO "+ channel +"\r\n", "UTF-8"))
         ping()
+        namesList = newChannel.getChannelUsers(channel)
+        print(namesList) 
