@@ -101,4 +101,18 @@ while active:
     if data.find(bytes("PART", "UTF-8")) != -1:
         newChannel.removeUserFromChannel(channel,data)
         print(namesList)  
+
+    if data.find(bytes("QUIT", "UTF-8")) != -1:
+        data = data.decode('UTF-8')
+
+        quitUserInfo = data.split(":")
+        quitUserNames = quitUserInfo[1].split("!")
+        quitUser = quitUserNames[0]
+
+        if quitUser in namesList:
+            newChannel.removeUserFromChannel(channel,data)
+        print(namesList) 
+
+
+        
         
