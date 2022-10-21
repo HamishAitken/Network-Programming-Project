@@ -470,7 +470,7 @@ class Client:
         
 
 def main():
-    s = Server("::1", 6667)
+    s = Server("fc00:1337::17", 6667)
     s.openConnection()
     s.processConnections()
 
