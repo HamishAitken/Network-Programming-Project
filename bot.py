@@ -103,7 +103,7 @@ ircSocket.send(bytes("NICK "+ botnick +"\r\n", "UTF-8"))
 ircChannel = Channel(channel)
 
 #namesList variable retains initial channel users
-namesList = newChannel.getInitialChannelUsers(channel)
+namesList = ircChannel.getInitialChannelUsers(channel)
             
 
 
