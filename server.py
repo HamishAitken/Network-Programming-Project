@@ -22,7 +22,7 @@ class Server:
     # validation info
     # Whenever data is received in the processMsg() function,
     # the location of a client object changes - making it hard to manipulate data within it
-    # Which is why  a whole bunch of parallel arrays have been made to make handle incorrect data that needs to be changed 
+    # Which is why  a whole bunch of parallel arrays have been made to handle incorrect data that needs to be changed 
     channelPrefix = ['&', '#', '+', '!']
     retryClientList = []
     retryList = []
