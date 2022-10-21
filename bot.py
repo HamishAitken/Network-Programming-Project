@@ -139,16 +139,13 @@ while active:
             
             data = data.decode('UTF-8')
 
-            userInfo = data.strip("/r/n")
-            userToSlapSplit = userInfo[1].split(":!slap ")
-            userToSlap = userToSlapSplit[1]
-
+            userInfo = data.split("\r\n")
+            userToSlapSplit = userInfo[0].split(":!slap ")
 
             tempNamesList = namesList.copy()
             tempNamesList.remove(nickname)
-            
 
-            if not userToSlap:
+            if len(userToSlapSplit) < 1:
                 tempNamesList.remove(botnick)
                 if not tempNamesList:
                     ircSocket.send(bytes("PRIVMSG " + channel + " :Not enough people to slap" + "\r\n", "UTF-8"))
@@ -156,10 +153,20 @@ while active:
                     randomUser = random.choice(tempNamesList)
                     ircSocket.send(bytes("PRIVMSG " + channel + " :" + randomUser + " has been slapped by a trout"+ "\r\n", "UTF-8"))
             else:
+
+                userToSlap = userToSlapSplit[1]
                 if userToSlap in tempNamesList:
                     ircSocket.send(bytes("PRIVMSG " + channel + " :" + userToSlap + " has been slapped by a trout"+ "\r\n", "UTF-8"))
                 else:
                     ircSocket.send(bytes("PRIVMSG " + channel + " :" + nickname + " has slapped themselves with a trout"+ "\r\n", "UTF-8"))
+
+
+            
+            
+
+            
+                
+                
 
 
 
