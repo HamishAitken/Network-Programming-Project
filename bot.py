@@ -13,12 +13,20 @@ active = True
 ircSocket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--host')
-parser.add_argument('--port')
+parser.add_argument('--host', action='store_true')
+parser.add_argument('--port', action='store_true')
+parser.add_argument('--name', action='store_true')
+parser.add_argument('--channel', action='store_true')
 args = parser.parse_args()
 
 if args.host:
-    print(HOST)
+    print("Host is: " + HOST)
+if args.port:
+    print("Port is: " + PORT)
+if args.name:
+    print("Nickname is: " + botnick)
+if args.channel:
+    print("Channel is: " + channel)    
 
 #ping function used to maintain a conection to the server by responding to pings
 def ping():  
