@@ -1,6 +1,7 @@
 import socket
 import selectors
 import types
+import time
 import datetime
 
 
@@ -47,6 +48,8 @@ class Server:
             return
         print("[{}:{}] -> ".format(client.getHost()[0], client.getHost()[1]) + msg)
 
+    # https://realpython.com/python-sockets/#echo-client-and-server
+    # main loop structure
     def processConnections(self):
         try:
             while True:
@@ -62,11 +65,13 @@ class Server:
             self.selector.close()
 
     def processMsg(self, data, currentClient):
+        clientTimer = time.time()
         if data:
                 messages = data.split("\r\n")
 
                 for i in messages:
 
+                    # if the incoming message is blank, skip
                     if i == '':
                         continue
 
@@ -77,8 +82,9 @@ class Server:
                         command = receivedCommand[0]
                         target = receivedCommand[1]
                     else:
-                        command = ''
-                        target = ''
+                        command = receivedCommand[0]
+                        target = None
+                    
 
                     if command == "NICK":
 
@@ -89,7 +95,7 @@ class Server:
                                 rpl432 = f":{target} 432 :Erroneous nickname"
                                 self.sendMsg(currentClient, rpl432)
 
-                            if existingNickname == True:
+                            if existingNickname:
                                 self.retryClientList.append(currentClient.getConnection())
                                 self.retryList.append(1)
                                 self.previousNickList.append(target)
@@ -107,14 +113,17 @@ class Server:
                                     else:
                                         retryIndex += 1
                                 
-                                if retry == True:
+                                if retry:
                                     currentClient.setNickname(target)
                                     newUserMsg = self.skippedCommandBuffer[retryIndex]
                                     messages.append(newUserMsg)
                                     self.retryList[retryIndex] = 0
+
+                        currentClient.setTimer()
                                     
         
                     elif command == "PRIVMSG":
+                        currentClient.setTimer()
                         client = self.findClient(currentClient.getConnection())
 
                         # Example private message
@@ -133,7 +142,7 @@ class Server:
                         detectedUser = self.findUser(target)
 
 
-                        if detectChannel == True:
+                        if detectChannel:
                             chan = self.getChannel(target)
                             privMsg = f":{client.getNickname()}!{client.getUsername()}@{client.getHost()[0]} PRIVMSG {chan.getName()} {fullMsg}"
                             self.sendChannelMsg(client, privMsg, chan)
@@ -143,6 +152,7 @@ class Server:
                             
 
                     elif command == "USER":
+                        currentClient.setTimer()
 
                         retry = False
                         retryIndex = 0
@@ -180,6 +190,7 @@ class Server:
 
                     elif command == "JOIN":
                         client = self.findClient(currentClient.getConnection())
+                        client.setTimer()
 
                         validateChannel = self.getChannel(target)
                         if validateChannel is None:
@@ -194,11 +205,13 @@ class Server:
                             self.joinMsg(client, validateChannel)
                             
                     elif command == "MODE":
+                        currentClient.setTimer()
                         chan = self.getChannel(target)
                         modeMsg = f":{self.serverName}" + f" 324 {currentClient.getNickname()} {chan.getName()} :No topic is set"
                         self.sendMsg(currentClient, modeMsg)
 
                     elif command == "WHO":
+                        currentClient.setTimer()
                         chan = self.getChannel(target)
                         whoMsg = f":{self.serverName}" + f" 352 {chan.getName()} {currentClient.getUsername()}  {currentClient.getHost()[0]} {self.serverName} {currentClient.getNickname()} H :0 realname"
                         self.sendMsg(currentClient, whoMsg)
@@ -209,8 +222,12 @@ class Server:
 
 
                     elif command == "PING":
+                        currentClient.setTimer()
                         pongMsg = ":{} PONG {}".format(self.serverName, self.serverName)
                         self.sendMsg(currentClient, pongMsg)
+
+                    elif command == "PONG":
+                        currentClient.setTimer()
 
                     elif command == "QUIT":
                         client = self.findClient(currentClient.getConnection())
@@ -220,12 +237,21 @@ class Server:
                         print(quitMsg)
 
                     elif len(i) > 0:
+                        currentClient.setTimer()
                         unknownMsg = ":{} 421 {} {}:Unknown command".format(self.serverName, currentClient.getUsername(), data)
                         self.sendMsg(currentClient, unknownMsg)
 
-        else:
+                if time.time() - clientTimer > 30:
+                    pingMsg = ":{} PING {}".format(self.serverName, currentClient.getNickname())
+                    self.sendMsg(currentClient, pingMsg)
+                    clientTimer = time.time()
+        
+        elif currentClient.checkTimer(30):
             pingMsg = "PING {}".format(currentClient.getNickname())
             self.sendMsg(currentClient, pingMsg)
+
+        else:
+            pass
             # print("No data from: ", clientAddress)
     
     def acceptConnection(self, sock):
@@ -241,6 +267,7 @@ class Server:
 
         # Create a new client instance and add it to the list
         newClient = Client(sock, data.addr)
+        newClient.setTimer()
 
         if mask & selectors.EVENT_READ:
             recvData = sock.recv(1024)
@@ -248,10 +275,12 @@ class Server:
             if recvData:
                 self.processMsg(recvData, newClient)
                 recvData = recvData.encode(encoding="utf-8")
-                # data.outb += recvData
             else:
                 self.selector.unregister(sock)
-                sock.close()
+                sock.close()  
+            if newClient.checkTimer(30):
+                pingMsg = "PING {}".format(newClient.getNickname())
+                self.sendMsg(newClient, pingMsg)
 
 
     def sendMsg(self, client, msg):
@@ -361,7 +390,7 @@ class Client:
     nickname = ""
     username = ""
     joinedChannels = []
-    timer = 0
+    timeSinceLastMsg = 0
 
     # validation
     registered = False
@@ -414,6 +443,17 @@ class Client:
 
     def getNickRetryStatus(self):
         return self.retryNick
+
+    def setTimer(self):
+        self.timeSinceLastMsg = time.time()    
+
+    def resetTimer(self):
+        self.timeSinceLastMsg = 0
+
+    def checkTimer(self, max):
+        if time.time() - self.timeSinceLastMsg > max:
+            return True
+        return False
 
     def addJoinedChannel(self, chan):
         self.joinedChannels.append(chan)
