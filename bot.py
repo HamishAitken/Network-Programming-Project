@@ -1,6 +1,6 @@
 import socket
 import random
-
+import datetime
 
 HOST = "fc00:1337::17" #IP for the server on Ubuntu virtual machine
 PORT = 6667 #port the IRC server is using
@@ -27,7 +27,16 @@ def getRandomFact():
 
     return randomFact
 
-    
+def getUserNickname(data):
+    data = data.decode('UTF-8')
+
+    UserInfo = data.split(":")
+    UserNames = UserInfo[1].split("!")
+    UserNickname = UserNames[0]
+
+
+    return UserNickname
+
 #establishes connection to the server 
 ircSocket.connect((HOST,PORT))
 
@@ -57,26 +66,18 @@ class Channel:
 
 
     
-    def addUserToChannel(self, channel, data):
-        data = data.decode('UTF-8')
-
-        joinedUserInfo = data.split(":")
-        joinedUserNames = joinedUserInfo[1].split("!")
-        joinedUser = joinedUserNames[0]
-
+    def addUserToChannel(self, data):
+        
+        joinedUser = getUserNickname(data)
         namesList.append(joinedUser) 
 
 
 
 
 
-    def removeUserFromChannel(self, channel, data):
-        data = data.decode('UTF-8')
-
-        removeUserInfo = data.split(":")
-        removedUserNames = removeUserInfo[1].split("!")
-        removedUser = removeUserNames[0]
-
+    def removeUserFromChannel(self, data):
+        
+        removedUser = getUserNickname(data)
         namesList.remove(removedUser)
 
 
@@ -104,31 +105,47 @@ while active:
         ping()
 
     if data.find(bytes("JOIN", "UTF-8")) != -1:
-        newChannel.addUserToChannel(channel,data)
+        newChannel.addUserToChannel(data)
         print(namesList)  
 
     if data.find(bytes("PART", "UTF-8")) != -1:
-        newChannel.removeUserFromChannel(channel,data)
+        newChannel.removeUserFromChannel(data)
         print(namesList)  
 
     if data.find(bytes("QUIT", "UTF-8")) != -1:
-        data = data.decode('UTF-8')
-
-        quitUserInfo = data.split(":")
-        quitUserNames = quitUserInfo[1].split("!")
-        quitUser = quitUserNames[0]
+        
+        quitUser = getUserNickname(data)
 
         if quitUser in namesList:
-            newChannel.removeUserFromChannel(channel,data)
+            newChannel.removeUserFromChannel(data)
         print(namesList) 
 
     #replies to the user with a random fun fact  
-    if data.find(bytes("PRIVMSG", "UTF-8")) != -1:
-        data = data.decode('UTF-8')
-        nicknameData = data.split (":")
-        nicknameSplit = nicknameData[1].split ("!")
-        nickname = nicknameSplit[0]
+    if data.find(bytes("PRIVMSG " + channel, "UTF-8")) != -1:
+        nickname = getUserNickname(data)    
+
+        if data.find(bytes(":!hello", "UTF-8")) != -1:
+            
+            dateAndTime = datetime.datetime.now()
+            shorterDateAndTime = dateAndTime.strftime("%c")
+            ircSocket.send(bytes("PRIVMSG " + channel + " :Hello there " + nickname + ", the date and time is: " + shorterDateAndTime + "\r\n", "UTF-8"))
+
+        if data.find(bytes(":!slap", "UTF-8")) != -1:
+            tempNamesList = namesList
+            tempNamesList.remove(nickname)
+            tempNamesList.remove(botnick)
+            if not tempNamesList:
+                ircSocket.send(bytes("PRIVMSG " + channel + " :Not enough people to slap" + "\r\n", "UTF-8"))
+            else:
+                randomUser = random.choice(tempNamesList)
+                ircSocket.send(bytes("PRIVMSG " + channel + " :" + randomUser + " has been slaped by a trout"+ "\r\n", "UTF-8"))
+
+
+
+
+    elif data.find(bytes("PRIVMSG" , "UTF-8")) != -1:
+        
+        nickname = getUserNickname(data)
         randomFact = getRandomFact()
-        ircSocket.send(bytes("PRIVMSG " + nickname + " : Did you know " + randomFact + "\r\n", "UTF-8"))
-        
-        
+        ircSocket.send(bytes("PRIVMSG " + nickname + " :Did you know " + randomFact + "\r\n", "UTF-8"))
+
