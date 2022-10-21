@@ -131,7 +131,7 @@ while active:
             ircSocket.send(bytes("PRIVMSG " + channel + " :Hello there " + nickname + ", the date and time is: " + shorterDateAndTime + "\r\n", "UTF-8"))
 
         if data.find(bytes(":!slap", "UTF-8")) != -1:
-            tempNamesList = namesList
+            tempNamesList = namesList.copy()
             tempNamesList.remove(nickname)
             tempNamesList.remove(botnick)
             if not tempNamesList:
