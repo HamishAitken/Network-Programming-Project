@@ -14,6 +14,7 @@ class Server:
     # stores the channels and clients that connect to the server
     channels = []
     clients = []
+    clientConnections = []
     selector = selectors.DefaultSelector()
     serverName = "server"
     serverVersion = "server-05.10.22"
@@ -90,7 +91,7 @@ class Server:
 
                         existingNickname = self.checkNickName(target)
 
-                        if currentClient.getRegisterStatus() == False:
+                        if currentClient.getRegisterStatus() == False and currentClient.getConnection() not in self.clientConnections:
                             if len(target) > 9:
                                 rpl432 = f":{target} 432 :Erroneous nickname"
                                 self.sendMsg(currentClient, rpl432)
@@ -118,6 +119,17 @@ class Server:
                                     newUserMsg = self.skippedCommandBuffer[retryIndex]
                                     messages.append(newUserMsg)
                                     self.retryList[retryIndex] = 0
+                        else:
+                            if existingNickname:
+                                errNicknameInUseMsg = f":{self.serverName} 433 {target} :Nickname is already in use"
+                                self.sendMsg(currentClient, errNicknameInUseMsg)
+                            else:
+                                client = self.findClient(currentClient.getConnection())
+                                previousNick = client.getNickname()
+                                client.setNickname(target)
+                                newNickMsg = f":{previousNick}!{client.getUsername()}@{client.getHost()[0]} NICK {client.getNickname()}"
+                                self.sendMsg(client, newNickMsg)
+
 
                         currentClient.setTimer()
                                     
@@ -187,6 +199,7 @@ class Server:
                         self.welcomeMessage(currentClient)
                         currentClient.register()
                         self.clients.append(currentClient)
+                        self.clientConnections.append(currentClient.getConnection())
 
                     elif command == "JOIN":
                         client = self.findClient(currentClient.getConnection())
@@ -254,6 +267,7 @@ class Server:
             pass
             # print("No data from: ", clientAddress)
     
+    # https://realpython.com/python-sockets/#echo-client-and-server
     def acceptConnection(self, sock):
         conn, addr = sock.accept()
         conn.setblocking(False)
@@ -261,6 +275,7 @@ class Server:
         events = selectors.EVENT_READ | selectors.EVENT_WRITE
         self.selector.register(conn, events, data=data)
 
+    # https://realpython.com/python-sockets/#echo-client-and-server
     def serviceConnection(self, key, mask):
         sock = key.fileobj
         data = key.data
@@ -470,7 +485,7 @@ class Client:
         
 
 def main():
-    s = Server("::1", 6667)
+    s = Server("fc00:1337::17", 6667)
     s.openConnection()
     s.processConnections()
 
