@@ -145,7 +145,7 @@ while active:
             tempNamesList = namesList.copy()
             tempNamesList.remove(nickname)
 
-            if len(userToSlapSplit) < 1:
+            if len(userToSlapSplit) < 2:
                 tempNamesList.remove(botnick)
                 if not tempNamesList:
                     ircSocket.send(bytes("PRIVMSG " + channel + " :Not enough people to slap" + "\r\n", "UTF-8"))
