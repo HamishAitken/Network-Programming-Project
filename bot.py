@@ -1,6 +1,7 @@
 import socket
 import random
 import datetime
+import argparse
 
 HOST = "fc00:1337::17" #IP for the server on Ubuntu virtual machine
 PORT = 6667 #port the IRC server is using
@@ -11,6 +12,13 @@ channel = "#test"
 active = True
 ircSocket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
 
+parser = argparse.ArgumentParser()
+parser.add_argument('--host')
+parser.add_argument('--port')
+args = parser.parse_args()
+
+if args.host:
+    print(HOST)
 
 #ping function used to maintain a conection to the server by responding to pings
 def ping():  
