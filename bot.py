@@ -130,16 +130,43 @@ while active:
             shorterDateAndTime = dateAndTime.strftime("%c")
             ircSocket.send(bytes("PRIVMSG " + channel + " :Hello there " + nickname + ", the date and time is: " + shorterDateAndTime + "\r\n", "UTF-8"))
 
+        
+
+
+        
+        
         if data.find(bytes(":!slap", "UTF-8")) != -1:
+            
+            data = data.decode('UTF-8')
+
+            UserInfo = data.strip("/r/n")
+            userToSlap = UserInfo[1].split(":!slap ")
+
             tempNamesList = namesList.copy()
             tempNamesList.remove(nickname)
-            tempNamesList.remove(botnick)
-            if not tempNamesList:
-                ircSocket.send(bytes("PRIVMSG " + channel + " :Not enough people to slap" + "\r\n", "UTF-8"))
-            else:
-                randomUser = random.choice(tempNamesList)
-                ircSocket.send(bytes("PRIVMSG " + channel + " :" + randomUser + " has been slaped by a trout"+ "\r\n", "UTF-8"))
+            
 
+            if not userToSlap:
+                tempNamesList.remove(botnick)
+                if not tempNamesList:
+                    ircSocket.send(bytes("PRIVMSG " + channel + " :Not enough people to slap" + "\r\n", "UTF-8"))
+                else:
+                    randomUser = random.choice(tempNamesList)
+                    ircSocket.send(bytes("PRIVMSG " + channel + " :" + randomUser + " has been slapped by a trout"+ "\r\n", "UTF-8"))
+            else:
+                if userToSlap in tempNamesList:
+                    ircSocket.send(bytes("PRIVMSG " + channel + " :" + userToSlap + " has been slapped by a trout"+ "\r\n", "UTF-8"))
+                else:
+                    ircSocket.send(bytes("PRIVMSG " + channel + " :" + nickname + " has slapped themselves with a trout"+ "\r\n", "UTF-8"))
+
+
+
+
+
+
+
+            
+            
 
 
 
@@ -147,5 +174,5 @@ while active:
         
         nickname = getUserNickname(data)
         randomFact = getRandomFact()
-        ircSocket.send(bytes("PRIVMSG " + nickname + " :Did you know " + randomFact + "\r\n", "UTF-8"))
+        ircSocket.send(bytes("PRIVMSG " + nickname + " :Did you know that " + randomFact + "\r\n", "UTF-8"))
 
