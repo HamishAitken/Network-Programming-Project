@@ -139,8 +139,10 @@ while active:
             
             data = data.decode('UTF-8')
 
-            UserInfo = data.strip("/r/n")
-            userToSlap = UserInfo[1].split(":!slap ")
+            userInfo = data.strip("/r/n")
+            userToSlapSplit = userInfo[1].split(":!slap ")
+            userToSlap = userToSlapSplit[1]
+
 
             tempNamesList = namesList.copy()
             tempNamesList.remove(nickname)
