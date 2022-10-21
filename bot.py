@@ -160,25 +160,6 @@ while active:
                 else:
                     ircSocket.send(bytes("PRIVMSG " + channel + " :" + nickname + " has slapped themselves with a trout"+ "\r\n", "UTF-8"))
 
-
-            
-            
-
-            
-                
-                
-
-
-
-
-
-
-
-            
-            
-
-
-
     elif data.find(bytes("PRIVMSG" , "UTF-8")) != -1:
         
         nickname = getUserNickname(data)
